@@ -14,11 +14,13 @@ app = FastAPI()
 model = joblib.load("model/model.joblib")
 
 # Define input schema using Pydantic
+from pydantic import BaseModel, Field
+
 class IrisInput(BaseModel):
-    sepal_length: float
-    sepal_width: float
-    petal_length: float
-    petal_width: float
+    sepal_length: float = Field(..., ge=0, le=10)
+    sepal_width: float = Field(..., ge=0, le=10)
+    petal_length: float = Field(..., ge=0, le=10)
+    petal_width: float = Field(..., ge=0, le=10)
 
 # Root endpoint
 @app.get("/")
