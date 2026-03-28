@@ -7,3 +7,4 @@ pydantic
 great_expectations
 mlflow
 pytest
+httpx
