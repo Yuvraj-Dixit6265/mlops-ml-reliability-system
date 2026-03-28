@@ -63,6 +63,8 @@ def predict(data: IrisInput):
 
     return {"prediction": int(prediction)}
 
+os.makedirs("logs", exist_ok=True)
+
 # Drift API
 @app.get("/drift")
 def check_drift():
