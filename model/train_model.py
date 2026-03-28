@@ -21,3 +21,6 @@ joblib.dump(model, "model/model.joblib")
 
 
 print("Model trained and saved successfully!")
+
+# Save training data for drift comparison
+X_train.to_csv("data/train_data.csv", index=False)

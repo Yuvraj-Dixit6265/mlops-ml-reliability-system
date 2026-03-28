@@ -1,33 +1,31 @@
 from fastapi import FastAPI
 import joblib
 import numpy as np
-from pydantic import BaseModel
+import pandas as pd
+import os
 
-# NEW IMPORT
-import whylogs as why
-from datetime import datetime
-
-#  FastAPI app initialize
-app = FastAPI()
-
-# Load trained model
-model = joblib.load("model/model.joblib")
-
-# Define input schema using Pydantic
 from pydantic import BaseModel, Field
+from app.drift import detect_drift
 
+# ✅ DEFINE CLASS FIRST
 class IrisInput(BaseModel):
     sepal_length: float = Field(..., ge=0, le=10)
     sepal_width: float = Field(..., ge=0, le=10)
     petal_length: float = Field(..., ge=0, le=10)
     petal_width: float = Field(..., ge=0, le=10)
 
-# Root endpoint
+# FastAPI app
+app = FastAPI()
+
+# Load model
+model = joblib.load("model/model.joblib")
+
+# Root
 @app.get("/")
 def read_root():
     return {"message": "ML Model API is running"}
 
-# Prediction endpoint
+# ✅ Predict API
 @app.post("/predict")
 def predict(data: IrisInput):
 
@@ -38,13 +36,15 @@ def predict(data: IrisInput):
         data.petal_width
     ]
 
-    # Convert to numpy
-    input_array = np.array([input_data])
+    input_df = pd.DataFrame([{
+        "sepal length (cm)": data.sepal_length,
+        "sepal width (cm)": data.sepal_width,
+        "petal length (cm)": data.petal_length,
+        "petal width (cm)": data.petal_width
+    }])
 
-    # Prediction
-    prediction = model.predict(input_array)[0]
+    prediction = model.predict(input_df)[0]
 
-    # 🔥 WHYLOGS LOGGING
     log_data = {
         "sepal_length": data.sepal_length,
         "sepal_width": data.sepal_width,
@@ -53,12 +53,17 @@ def predict(data: IrisInput):
         "prediction": int(prediction)
     }
 
-    profile = why.log(log_data)
+    log_df = pd.DataFrame([log_data])
+    log_file = "logs/data_log.csv"
 
-    # Save log file with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    profile.write(f"logs/profile_{timestamp}.bin")
+    if os.path.exists(log_file):
+        log_df.to_csv(log_file, mode='a', header=False, index=False)
+    else:
+        log_df.to_csv(log_file, index=False)
 
-    return {
-        "prediction": int(prediction)
-    }
+    return {"prediction": int(prediction)}
+
+# Drift API
+@app.get("/drift")
+def check_drift():
+    return detect_drift()
